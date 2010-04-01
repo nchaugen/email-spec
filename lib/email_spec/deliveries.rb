@@ -71,9 +71,23 @@ module EmailSpec
     end
   end
 
+  if defined?(Mail)
+    module EmailSpec::Helpers
+      class AttachmentAdapter
+        def original_filename; @attachment.filename; end
+        def content_type; @attachment.mime_type; end
+        def size; @attachment.read.size; end
+      end
+    end
+  end
+  
   module Deliveries
     if defined?(Pony)
       def deliveries; Pony::deliveries ; end
+      include EmailSpec::MailerDeliveries
+    elsif defined?(Mail)
+      def mailer; Mail::TestMailer; end
+      def delivieries; mailer.deliveries; end
       include EmailSpec::MailerDeliveries
     elsif ActionMailer::Base.delivery_method == :activerecord
       include EmailSpec::ARMailerDeliveries

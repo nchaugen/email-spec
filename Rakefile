@@ -26,7 +26,7 @@ rescue LoadError
 end
 
 # TODO: switch to gem bundler
-([['delayed_job', '1.8.4']] + %w[mimetype-fu fixjour pony sinatra rack-test].map{|g| [g]}).each do |gem_args|
+([['delayed_job', '1.8.4']] + %w[mimetype-fu fixjour pony sinatra rack-test mail].map{|g| [g]}).each do |gem_args|
   gem_name = gem_args.first
   gem_version = gem_args.size > 1 ? gem_args[1] : nil
   begin
@@ -60,13 +60,24 @@ namespace :example_app do
   end
 end
 
-task :default => [:features, :spec, 'example_app:spec']
+namespace :example_app_with_mail_gem do
+  Spec::Rake::SpecTask.new(:spec) do |spec|
+    desc "Specs for Example app with Mail gem"
+    spec.libs << 'lib' << 'spec'
+    spec.spec_files = FileList['examples/rails_root_mail_gem/spec/**/*_spec.rb']
+  end
+end
+
+task :default => [:features, :spec, 'example_app:spec', 'example_app_with_mail_gem:spec']
 
 desc "Cleans the project of any tmp file that should not be included in the gemspec."
 task :clean do
   FileUtils.rm_f('examples/rails_root/features/step_definitions/email_steps.rb')
   FileUtils.rm_rf('examples/rails_root/log')
   FileUtils.rm_rf('examples/rails_root/vendor')
+  FileUtils.rm_f('examples/rails_root_mail_gem/features/step_definitions/email_steps.rb')
+  FileUtils.rm_rf('examples/rails_root_mail_gem/log')
+  FileUtils.rm_rf('examples/rails_root_mail_gem/vendor')
   %w[*.sqlite3 *.log].each do |pattern|
     `find . -name "#{pattern}" -delete`
   end

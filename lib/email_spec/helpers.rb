@@ -44,10 +44,15 @@ module EmailSpec
       email
     end
 
-    def current_email_attachments(address=nil)
-      current_email(address).attachments || Array.new
+    class AttachmentAdapter
+      def initialize(attachment); @attachment = attachment; end   
+      def method_missing(method_sym, *args, &block); @attachment.send method_sym, *args, &block; end
     end
-
+    
+    def current_email_attachments(address=nil)
+      (current_email(address).attachments || Array.new).map {|attachment| AttachmentAdapter.new(attachment)}
+    end
+    
     def unread_emails_for(address)
       mailbox_for(address) - read_emails_for(address)
     end
@@ -68,7 +73,7 @@ module EmailSpec
     end
 
     def links_in_email(email)
-      URI.extract(email.body, ['http', 'https'])
+      URI.extract(email.body.to_s, ['http', 'https'])
     end
 
     private
@@ -114,7 +119,7 @@ module EmailSpec
 
     # e.g. Click here in  <a href="http://confirm">Click here</a>
     def parse_email_for_anchor_text_link(email, link_text)
-      if textify_images(email.body) =~ %r{<a[^>]*href=['"]?([^'"]*)['"]?[^>]*?>[^<]*?#{link_text}[^<]*?</a>}
+      if textify_images(email.body.to_s) =~ %r{<a[^>]*href=['"]?([^'"]*)['"]?[^>]*?>[^<]*?#{link_text}[^<]*?</a>}
         URI.split($1)[5..-1].compact!.join("?").gsub("&amp;", "&")
         # sub correct ampersand after rails switches it (http://dev.rubyonrails.org/ticket/4002)
       else
